@@ -1,41 +1,33 @@
 import java.sql.DriverManager
 import scala.collection.mutable
 
+import sh.echo.simqle._
+
 object Main extends App {
 
   Class.forName("org.h2.Driver")
-  val conn = DriverManager.getConnection("jdbc:h2:mem:;MODE=MYSQL")
+  val db = Db("jdbc:h2:mem:demo;MODE=MYSQL;DB_CLOSE_DELAY=-1")
 
-  val stmt = conn.createStatement()
-  stmt.execute("create table foo (a int, b varchar(255))")
-  stmt.execute("insert into foo (a, b) values (1, 'a'), (2, 'b')")
-
-  val rs1 = stmt.executeQuery("select b from foo")
-  assert(Sql.list[String](rs1) == List("a", "b"))
-
-  val rs2 = stmt.executeQuery("select a from foo")
-  assert(Sql.one[Int](rs2) == Option(1))
-
-  val rs3 = stmt.executeQuery("select a, b from foo")
-  assert(Sql.list[(Int, String)](rs3) == List((1, "a"), (2, "b")))
+  db.withConnection { conn ⇒
+    val stmt = conn.createStatement()
+    stmt.execute("create table foo (a int, b varchar(255))")
+    stmt.execute("insert into foo (a, b) values (1, 'a'), (2, 'b')")
+    stmt.close()
+  }
 
   case class Foo(a: Int, b: String)
-  val rs4a = stmt.executeQuery("select * from foo where b = 'b'")
-  assert(Sql.one[Foo](rs4a) == Option(Foo(2, "b")))
-  val rs4b = stmt.executeQuery("select * from foo where b = 'zzz'")
-  assert(Sql.one[Foo](rs4b) == None)
-
   case class Bar(b: String)
-  val rs5 = stmt.executeQuery("select * from foo")
-  assert(Sql.list[Bar](rs5) == List(Bar("a"), Bar("b")))
+
+  assert(db.list[String]("select b from foo") == List("a", "b"))
+  assert(db.one[Int]("select a from foo") == Option(1))
+  assert(db.list[(Int, String)]("select a, b from foo") == List((1, "a"), (2, "b")))
+  assert(db.one[Foo]("select * from foo where b = 'b'") == Option(Foo(2, "b")))
+  assert(db.one[Foo]("select * from foo where b = 'z'") == None)
+  assert(db.list[Bar]("select * from foo") == List(Bar("a"), Bar("b")))
 
   {
     import shapeless._
     import RowMapper.HListSupport._
-    val rs6 = stmt.executeQuery("select a, b from foo")
-    assert(Sql.list[Int :: String :: HNil](rs6) == List(1 :: "a" :: HNil, 2 :: "b" :: HNil))
+    assert(db.list[Int :: String :: HNil]("select a, b from foo") == List(1 :: "a" :: HNil, 2 :: "b" :: HNil))
   }
-
-  stmt.close()
-  conn.close()
 }

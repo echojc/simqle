@@ -1,33 +1,10 @@
+package sh.echo.simqle
+
+import java.sql.ResultSet
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
-import java.sql.ResultSet
+
 import shapeless._
-
-trait ColumnMapper[T] {
-  def fromResultSet(rs: ResultSet, index: Int): T
-  def fromResultSet(rs: ResultSet, column: String): T
-}
-
-object ColumnMapper {
-
-  implicit object IntColumnMapper extends ColumnMapper[Int] {
-    def fromResultSet(rs: ResultSet, index: Int): Int = {
-      rs.getInt(index)
-    }
-    def fromResultSet(rs: ResultSet, column: String): Int = {
-      rs.getInt(column)
-    }
-  }
-
-  implicit object StringColumnMapper extends ColumnMapper[String] {
-    def fromResultSet(rs: ResultSet, index: Int): String = {
-      rs.getString(index)
-    }
-    def fromResultSet(rs: ResultSet, column: String): String = {
-      rs.getString(column)
-    }
-  }
-}
 
 trait RowMapper[T] {
   def fromResultSet(rs: ResultSet): Option[T]
@@ -122,16 +99,4 @@ object RowMapperLowerPriorityImplicits {
       }
     """ }
   }
-}
-
-object Sql {
-
-  def one[T](rs: ResultSet)(implicit m: RowMapper[T]): Option[T] =
-    m.fromResultSet(rs)
-
-  def stream[T](rs: ResultSet)(implicit m: RowMapper[T]): Stream[T] =
-    (Stream.continually(one(rs)) takeWhile (_.nonEmpty)).flatten
-
-  def list[T](rs: ResultSet)(implicit m: RowMapper[T]): List[T] =
-    stream(rs).toList
 }
