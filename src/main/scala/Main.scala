@@ -20,8 +20,10 @@ object Main extends App {
   assert(Sql.list[(Int, String)](rs3) == List((1, "a"), (2, "b")))
 
   case class Foo(a: Int, b: String)
-  val rs4 = stmt.executeQuery("select * from foo")
-  assert(Sql.list[Foo](rs4) == List(Foo(1, "a"), Foo(2, "b")))
+  val rs4a = stmt.executeQuery("select * from foo where b = 'b'")
+  assert(Sql.one[Foo](rs4a) == Option(Foo(2, "b")))
+  val rs4b = stmt.executeQuery("select * from foo where b = 'zzz'")
+  assert(Sql.one[Foo](rs4b) == None)
 
   case class Bar(b: String)
   val rs5 = stmt.executeQuery("select * from foo")
