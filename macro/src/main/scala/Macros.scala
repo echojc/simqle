@@ -60,6 +60,12 @@ object RowMapper extends RowMapperLowerPriorityImplicits {
       }
   }
 
+  // we'll do this for now...
+  // i don't understand implicit resolution well enough to make this coexist with the tuple one
+  object HListSupport {
+    implicit def hlistRowMapper[L <: HList](implicit hx: HListRowMapper[L, _0]) = hx
+  }
+
   import ops.hlist.Tupler
   implicit def tupleRowMapper[P, L <: HList](
     implicit gen: Generic.Aux[P, L], hx: HListRowMapper[L, _0], tp: Tupler.Aux[L, P]) =

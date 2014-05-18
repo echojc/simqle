@@ -29,6 +29,13 @@ object Main extends App {
   val rs5 = stmt.executeQuery("select * from foo")
   assert(Sql.list[Bar](rs5) == List(Bar("a"), Bar("b")))
 
+  {
+    import shapeless._
+    import RowMapper.HListSupport._
+    val rs6 = stmt.executeQuery("select a, b from foo")
+    assert(Sql.list[Int :: String :: HNil](rs6) == List(1 :: "a" :: HNil, 2 :: "b" :: HNil))
+  }
+
   stmt.close()
   conn.close()
 }
