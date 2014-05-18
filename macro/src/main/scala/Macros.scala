@@ -35,7 +35,7 @@ trait RowMapper[T] {
 
 object RowMapper extends RowMapperLowerPriorityImplicits {
 
-  import nat._1
+  import nat._0
   import ops.nat.ToInt
   trait HListRowMapper[L <: HList, N <: Nat] extends RowMapper[L] {
     type H
@@ -53,7 +53,7 @@ object RowMapper extends RowMapperLowerPriorityImplicits {
         type H = H0
         type T = T0
         def fromResultSet(rs: ResultSet): Option[H0 :: T0] = {
-          val index = toInt()
+          val index = toInt() + 1 // ResultSet uses 1-based indexes
           if (index == 1 && !rs.next()) None
           else tx.fromResultSet(rs) map (hx.fromResultSet(rs, index) :: _)
         }
@@ -62,7 +62,7 @@ object RowMapper extends RowMapperLowerPriorityImplicits {
 
   import ops.hlist.Tupler
   implicit def tupleRowMapper[P, L <: HList](
-    implicit gen: Generic.Aux[P, L], hx: HListRowMapper[L, _1], tp: Tupler.Aux[L, P]) =
+    implicit gen: Generic.Aux[P, L], hx: HListRowMapper[L, _0], tp: Tupler.Aux[L, P]) =
     new RowMapper[P] {
       def fromResultSet(rs: ResultSet): Option[P] = hx.fromResultSet(rs) map (tp.apply)
     }
