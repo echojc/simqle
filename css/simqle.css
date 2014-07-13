@@ -1,0 +1,40 @@
+.simqle h1 {
+  text-transform: none !important;
+  font-family: 'Ubuntu' !important;
+  letter-spacing: -5px !important;
+}
+.simqle .p {
+  -webkit-transition: -webkit-transform .3s linear, color .3s linear !important;
+  -moz-transition: -moz-transform .3s linear, color .3s linear !important;
+  -ms-transition: -ms-transform .3s linear, color .3s linear !important;
+  -o-transition: -o-transform .3s linear, color .3s linear !important;
+  transition: transform .3s linear, color .3s linear !important;
+  display: inline-block;
+}
+.simqle .sql {
+  -webkit-transition: color .3s linear;
+  -moz-transition: color .3s linear;
+  -ms-transition: color .3s linear;
+  -o-transition: color .3s linear;
+  transition: color .3s linear;
+}
+.simqle .simple {
+  font-size: 200px;
+  color: #5678e4;
+}
+.simqle .container:hover .sql {
+  color: #e47856;
+}
+.simqle .container:hover .p {
+  -webkit-transform: scale(-1, 1);
+  -moz-transform: scale(-1, 1);
+  -ms-transform: scale(-1, 1);
+  -o-transform: scale(-1, 1);
+  transform: scale(-1, 1);
+}
+.simqle .container {
+  display: inline-block;
+}
+.simqle a {
+  text-decoration: none;
+}

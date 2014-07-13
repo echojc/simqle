@@ -1,54 +1,656 @@
-<html>
-<head>
-<link href='http://fonts.googleapis.com/css?family=Ubuntu' rel='stylesheet' type='text/css'>
-<style>
-* {
-  font-family: 'Ubuntu', sans-serif;
-  letter-spacing: -5px;
-}
-.p {
-  -webkit-transition: -webkit-transform .3s linear, color .3s linear !important;
-  -moz-transition: -moz-transform .3s linear, color .3s linear !important;
-  -ms-transition: -ms-transform .3s linear, color .3s linear !important;
-  -o-transition: -o-transform .3s linear, color .3s linear !important;
-  transition: transform .3s linear, color .3s linear !important;
-  display: inline-block;
-}
-.sql {
-  -webkit-transition: color .3s linear;
-  -moz-transition: color .3s linear;
-  -ms-transition: color .3s linear;
-  -o-transition: color .3s linear;
-  transition: color .3s linear;
-}
-.simple {
-  font-size: 200px;
-  color: #5678e4;
-}
-.container:hover .sql {
-  color: #e47856;
-}
-.container:hover .p {
-  -webkit-transform: scale(-1, 1);
-  -moz-transform: scale(-1, 1);
-  -ms-transform: scale(-1, 1);
-  -o-transform: scale(-1, 1);
-  transform: scale(-1, 1);
-}
-.container {
-  display: inline-block;
-  cursor: pointer;
-}
-a {
-  text-decoration: none;
-}
-</style>
-</head>
-<body>
-<table style="width:100%;height:100%"><tr><td valign="middle"><center>
-<div class="container" onclick="window.location='https://github.com/echojc/simqle'">
-<a href="https://github.com/echojc/simqle" class="simple"><span class="sql">s</span>im<span class="p sql">p</span><span class="sql">l</span>e<span class="sql">.</span></a>
-</div>
-</center></td></tr></table>
-</body>
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+
+    <title>simqle</title>
+
+    <meta name="description" content="Using typeclasses and macros to build a type-safe database API.">
+    <meta name="author" content="Jonathan Chow">
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link href='http://fonts.googleapis.com/css?family=Ubuntu' rel='stylesheet' type='text/css'>
+
+    <link rel="stylesheet" href="css/reveal.min.css">
+    <link rel="stylesheet" href="css/simqle.css">
+    <link rel="stylesheet" href="css/theme/sky.css" id="theme">
+
+    <!-- For syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/tomorrow.css">
+
+    <!-- If the query includes 'print-pdf', use the PDF print sheet -->
+    <script>
+      document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+    </script>
+
+    <!--[if lt IE 9]>
+    <script src="lib/js/html5shiv.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="reveal">
+
+      <!-- Any section element inside of this container is displayed as a slide -->
+      <div class="slides">
+
+        <section>
+          <section>
+            <div class="simqle">
+              <div class="container">
+                <h1><span class="sql">s</span>im<span class="p sql">p</span><span class="sql">l</span>e<span class="sql">.</span></h1>
+              </div>
+            </div>
+            <div><em>Using <strong>typeclasses</strong> and <strong>macros</strong> to build a type-safe database API</em></div>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ## What I wanted
+
+              * `SELECT` anything
+                * result must be type-safe (sorta)
+                * must support case classes
+              * **zero** boilerplate
+              * uses Scala conventions e.g., `Option`
+            </script>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ## typeclasses
+
+              "decoupling polymorphism"
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              A typical usage of polymorphism...
+              ```scala
+              trait Serializable {
+                def to(): String
+              }
+
+              class MyClass extends Serializable {
+                def to(): String =
+                  this.toString()
+              }
+
+              object SerializingEngine {
+                def serialize(obj: Serializable): Unit = {
+                  val str = obj.to()
+                  // ...
+                }
+              }
+
+              SerializingEngine.serialize(new MyClass)
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              But what if I wanted to make my engine support `String`?
+              ```scala
+              SerializingEngine.serialize("a string")
+              // Error! type mismatch; found: String, required: Serializable
+              ```
+              Or `Int`?
+              ```scala
+              SerializingEngine.serialize(42)
+              // Error! type mismatch; found: Int, required: Serializable
+              ```
+              Or a third party `sealed class`? Or any other type that you can't mess with?
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              Typeclasses lets us "decouple" this process
+              ```scala
+              trait Serializable[T] {
+                def to(obj: T): String
+              }
+
+              class MyClass { ... }
+              object MyClass {
+                implicit val serializable = new Serializable[MyClass] {
+                  def to(obj: MyClass): String =
+                    obj.toString()
+                }
+              }
+
+              object SerializingEngine {
+                def serialize[T](obj: T)(implicit s: Serializable[T]): Unit = {
+                  val str = s.to(obj)
+                  // ...
+                }
+              }
+
+              SerializingEngine.serialize(new MyClass)
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              Now we can implement the trait for any class we want
+              ```scala
+              implicit val stringSerializable = new Serializable[String] {
+                def to(obj: String): String = obj
+              }
+              SerializingEngine.serialize("a string")
+              // works!
+              ```
+            </script>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ## querying the db
+
+              ```scala
+              // leaving out try{} etc. for brevity
+              def list(query: String): List[Person] = {
+                val conn = getConnection()
+                val stmt = conn.createStatement()
+                val rs = stmt.executeQuery(query)
+
+                val result = mutable.Buffer.empty[Person]
+                while (rs.next()) {
+                  val person = Person(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    // ...
+                  )
+                  result += person
+                }
+                result
+              }
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ## querying the db
+
+              ```scala
+              // leaving out try{} etc. for brevity
+              def list(query: String): List[Person] = {
+                val conn = getConnection()
+                val stmt = conn.createStatement()
+                val rs = stmt.executeQuery(query)
+
+                val rows = Stream.continually(rs).takeWhile(_.next())
+                rows.map { rs =>
+                  Person(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    // ...
+                  )
+                }.toList
+              }
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ### What can we abstract out?
+
+              ```scala
+              rows map { rs =>
+                Person(
+                  rs.getInt("id"),
+                  rs.getString("name"),
+                  // ...
+                )
+              }
+              ```
+
+              * Creating the `Person` (generic `T`) object
+                * `ResultSet => T`
+                * I call this a _row mapping_
+              * Extracting a value from a column
+                * `(ResultSet, column_id) => basic_type`
+                * I call this a _column mapping_
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ### What can we abstract out?
+
+              ```scala
+              val personRowMapper = (rs: ResultSet) =>
+                Person(
+                  intColumnMapper(rs, "id"),
+                  stringColumnMapper(rs, "name"),
+                  // ...
+                )
+
+              rows map (personRowMapper)
+              ```
+
+              * Creating the `Person` object
+                * `ResultSet => T`
+                * I call this a _row mapping_
+              * Extracting a value from a column
+                * `(ResultSet, column_id) => basic_type`
+                * I call this a _column mapping_
+            </script>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ### column mapping
+
+              ```scala
+              trait ColumnMapper[T] {
+                def fromResultSet(rs: ResultSet, column: String): T
+              }
+
+              object ColumnMapper {
+
+                implicit object IntColumnMapper extends ColumnMapper[Int] {
+                  def fromResultSet(rs: ResultSet, column: String): Int =
+                    rs.getInt(column)
+                }
+
+                implicit object StringColumnMapper extends ColumnMapper[String] {
+                  def fromResultSet(rs: ResultSet, column: String): String =
+                    rs.getString(column)
+                }
+              }
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ### column mapping
+
+              ```scala
+              def columnMapper[T](implicit cm: ColumnMapper[T]) = cm
+              def columnMapper[T] = implicitly[ColumnMapper[T]]
+
+              val intColumnMapper = columnMapper[Int]
+              val stringColumnMapper = columnMapper[String]
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ### why?
+
+              ```scala
+              rows map { rs =>
+                Person(
+                  rs.getInt("id"),
+                  rs.getString("name"),
+                  // ...
+                )
+              }
+              ```
+
+              * No parameterisation on the type
+                * "if I want `Int`, call `getInt`"
+                * "if I want `String`, call `getString`"
+              * Imagine if we had this limitation on arrays
+
+              ```scala
+              val fstItem = array.get1()
+              val sndItem = array.get2()
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ### why?
+
+              ```scala
+              rows map { rs =>
+                Person(
+                  columnMapper[Int].fromResultSet(rs, "id"),
+                  columnMapper[String].fromResultSet(rs, "name"),
+                  // ...
+                )
+              }
+              ```
+
+              * A different function is invoked based on the type
+              * Parallels how we parameterise functions with values
+
+              ```scala
+              val fstItem = array.get(1)
+              val sndItem = array.get(2)
+              ```
+            </script>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ### row mapping
+
+              ```scala
+              trait RowMapper[T] {
+                def fromResultSet(rs: ResultSet): Option[T]
+              }
+
+              object RowMapper {
+
+                implicit object PersonRowMapper extends RowMapper[Person] {
+                  def fromResultSet(rs: ResultSet): Option[Person] =
+                    if (!rs.next()) None
+                    else Some(
+                      Person(
+                        implicitly[ColumnMapper[Int]].fromResultSet(rs, "id"),
+                        implicitly[ColumnMapper[String]].fromResultSet(rs, "name"),
+                        // ...
+                      )
+                    )
+                }
+              }
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ### row mapping
+
+              ```scala
+              rows map { rs =>
+                Person(
+                  rs.getInt("id"),
+                  rs.getString("name"),
+                  // ...
+                )
+              }
+              ```
+
+              ```scala
+              rows.map { rs => PersonRowMapper.fromResultSet(rs) }.flatten
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ### row mapping
+
+              ```scala
+              rows.map { rs => PersonRowMapper.fromResultSet(rs) }.flatten
+              ```
+
+              ```scala
+              rows.map { rs => implicitly[RowMapper[Person]].fromResultSet(rs) }.flatten
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ### row mapping
+
+              ```scala
+              def list(query: String): List[Person] = {
+                // ...
+                val rows = Stream.continually(rs).takeWhile(_.next())
+                rows.map { rs =>
+                  Person(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    // ...
+                  )
+                }.toList
+              }
+              ```
+
+              ```scala
+              def list[T: RowMapper](query: String): List[T] = {
+                // ...
+                val rowMapper = implicitly[RowMapper[T]]
+                (Stream
+                  .continually(rowMapper.fromResultSet(rs))
+                  .takeWhile(_.isNonEmpty)
+                  .flatten
+                  .toList)
+              }
+              ```
+            </script>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ## "no boilerplate"
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ### this is boilerplate
+
+              ```scala
+              implicit object PersonRowMapper extends RowMapper[Person] {
+                def fromResultSet(rs: ResultSet): Option[Person] =
+                  if (!rs.next()) None
+                  else Some(
+                    Person(
+                      implicitly[ColumnMapper[Int]].fromResultSet(rs, "id"),
+                      implicitly[ColumnMapper[String]].fromResultSet(rs, "name"),
+                      // ...
+                    )
+                  )
+              }
+              ```
+
+              I need to implement one of these for each class I want to be able to map to.
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              But we already have everything we need to create a `Person` object in its definition!
+              ```scala
+              case class Person(
+                id: Int,
+                name: String,
+                // ...
+              )
+              ```
+
+              ```scala
+              new Person(
+                implicitly[ColumnMapper[Int   ]].fromResultSet(rs, "id"  ),
+                implicitly[ColumnMapper[String]].fromResultSet(rs, "name"),
+                // ...
+              )
+              ```
+            </script>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ## macros!
+
+              I like to think of it as "compile-time reflection"
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ## macros
+
+              We let the compiler generate our `RowMapper`s for us when we need them.
+
+              ```scala
+              object RowMapper {
+                //implicit object PersonRowMapper extends RowMapper[Person] { ... }
+
+                implicit def genericRowMapper[T]: RowMapper[T] =
+                  macro materializeGenericRowMapper[T]
+
+                def materializeGenericRowMapper[T](c: Context): c.Expr[RowMapper[T]] = {
+                  ???
+                }
+              }
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ## Macros
+
+              This is the code we need to generate:
+
+              ```scala
+              new Person(
+                implicitly[ColumnMapper[Int]].fromResultSet(rs, "id"),
+                implicitly[ColumnMapper[String]].fromResultSet(rs, "name"),
+                // ...
+              )
+              ```
+
+              &nbsp;
+
+              "for each `val` in the constructor, write this line using its type and name"
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ```scala
+              def materializeCaseClassRowMapper[T: c.WeakTypeTag](c: Context)
+                : c.Expr[RowMapper[T]] = {
+                import c.universe._
+              ```
+              ```scala
+                val tpe = weakTypeOf[T]
+                val fields = tpe.decls.collectFirst {
+                  case m: MethodSymbol if m.isPrimaryConstructor ⇒ m
+                }.get.paramLists.head
+
+                val mappedColumns = fields map { field ⇒
+                  val name = field.name
+                  val decoded = name.decodedName.toString
+                  val fieldTpe = tpe.decl(name).typeSignature
+                  q"implicitly[ColumnMapper[$fieldTpe]].fromResultSet(rs, $decoded)"
+                }
+              ```
+              ```scala
+                c.Expr[RowMapper[T]] { q"""
+                  new RowMapper[$tpe] {
+                    def fromResultSet(rs: java.sql.ResultSet): Option[$tpe] = {
+                      if (!rs.next()) None
+                      else Option(new $tpe(..$mappedColumns))
+                    }
+                  }
+                """ }
+              ```
+              ```scala
+              }
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+              ```scala
+              def list[T: RowMapper](query: String): List[T] = ...
+              def list[T](query: String)(implicit rm: RowMapper[T]): List[T] = ...
+
+              case class Person(id: Int, name: String, height: Float)
+              val people = list[Person]("select * from person")
+              // List(Person(1, "John", 180.3), ...)
+              // no boilerplate! just works!
+              ```
+            </script>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ## resources
+
+              * simqle: https://echojc.github.io/simqle
+              * macros: http://blog.echo.sh
+                * "Exploring Scala Macros: Map to Case Class Conversion"
+            </script>
+          </section>
+        </section>
+
+        <section>
+          <section data-markdown>
+            <script type="text/template">
+              ## questions?
+            </script>
+          </section>
+        </section>
+      </div>
+
+    </div>
+
+    <a href="https://github.com/echojc/simqle">
+      <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/52760788cde945287fbb584134c4cbc2bc36f904/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f77686974655f6666666666662e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_white_ffffff.png">
+    </a>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.min.js"></script>
+
+    <script>
+
+      // Full list of configuration options available here:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        controls: true,
+        progress: false,
+        history: true,
+        center: true,
+
+        maxScale: 3.0,
+
+        theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+        transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+        // Optional libraries used to extend on reveal.js
+        dependencies: [
+          { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+          { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+          { src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+          { src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+        ]
+      });
+
+    </script>
+
+  </body>
 </html>
