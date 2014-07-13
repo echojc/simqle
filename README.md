@@ -1,10 +1,12 @@
-simqle
-======
+# simqle
+
 
 An experiment with automatic conversion between SQL queries and Scala types
 via the typeclass pattern.
 
-Examples:
+[See the presentation here](https://echojc.github.io/simqle).
+
+### Examples
 
 ```scala
 val db = Db("jdbc:h2:mem:demo;MODE=MYSQL;DB_CLOSE_DELAY=-1")
